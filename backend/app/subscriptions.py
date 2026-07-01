@@ -4,6 +4,11 @@ from bson import ObjectId
 from app.database import db
 from app.models import Subscription, UpdateSubscription
 from app.auth_dependency import get_current_user
+from app.utils import (
+    serialize_document,
+    serialize_documents,
+    is_valid_object_id
+)
 
 router = APIRouter()
 
@@ -45,10 +50,7 @@ def get_subscriptions(
         )
     )
 
-    for sub in subscriptions:
-        sub["_id"] = str(sub["_id"])
-
-    return subscriptions
+    return serialize_documents(subscriptions)
 
 
 # ==========================================
@@ -59,6 +61,12 @@ def get_subscription(
     subscription_id: str,
     current_user=Depends(get_current_user)
 ):
+
+    if not is_valid_object_id(subscription_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Subscription ID"
+        )
 
     subscription = db.subscriptions.find_one(
         {
@@ -73,9 +81,7 @@ def get_subscription(
             detail="Subscription not found"
         )
 
-    subscription["_id"] = str(subscription["_id"])
-
-    return subscription
+    return serialize_document(subscription)
 
 
 # ==========================================
@@ -87,6 +93,12 @@ def update_subscription(
     subscription: UpdateSubscription,
     current_user=Depends(get_current_user)
 ):
+
+    if not is_valid_object_id(subscription_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Subscription ID"
+        )
 
     update_data = subscription.model_dump(
         exclude_none=True
@@ -121,6 +133,12 @@ def delete_subscription(
     subscription_id: str,
     current_user=Depends(get_current_user)
 ):
+
+    if not is_valid_object_id(subscription_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Subscription ID"
+        )
 
     result = db.subscriptions.delete_one(
         {
